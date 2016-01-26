@@ -1,0 +1,21 @@
+{
+	"version":null,
+	"info": {
+		"title":"My CMS Title",
+		"admin_user":"admin",
+		"admin_password":"admin",
+		"admin_email":"your@email.com"
+	},
+
+	"locations": {
+		"remoteUrl":"http://www.myserver.com",
+		"localUrl":"http://localhost:8888/nwu_test"
+	},
+
+	"localDatabase": {
+		"name":"vcwall_db_test",
+		"user":"root",
+		"pass":"root",
+		"host":"localhost:8889"
+	}
+}
