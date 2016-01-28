@@ -119,7 +119,10 @@ for plugin in wpMigratePlugins:
 	call(['wp plugin install ' + wpMigrateProFilesPath + plugin + '.zip'], shell=True)
 	call(['wp plugin activate ' + plugin], shell=True)
 
+# ------------------------------------------------------
 # Sync
+
+# Set up license  for WP Migrate DB Pro
 logVerboseMessage("Syncing with server...")
 registerMessage = "Please go to " + config["locations"]["localUrl"] + "/wp-admin." 
 registerMessage += "\nLogin using username: " + config["info"]["admin_user"] + " and password: " + config["info"]["admin_password"]
@@ -127,6 +130,10 @@ registerMessage += "\nGo to Tools->Migrate DB Pro"
 registerMessage += "\nGo to Settings, and enter license."
 registerMessage += "\n\nPress Enter to continue once complete"
 input(registerMessage)
+
+print("\n\n")
+
+
 
 #wp migratedb pull http://example.com [secret key] --find=//example.com,/path/to/example.com --replace=//example.dev,/path/to/example.dev --skip-replace-guids --backup=prefix --media=remove-and-copy
 syncCommand = 'wp migratedb pull ' + config["locations"]['remoteUrl'] + ' ' + config["locations"]['remoteMigrateDBSecret']

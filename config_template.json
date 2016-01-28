@@ -8,12 +8,12 @@
 	},
 
 	"locations": {
-		"remoteUrl":"http://www.myserver.com",
-		"localUrl":"http://localhost:8888/nwu_test"
+		"remoteUrl":"http://wwww.yourwebsite.com/wordpressDir/",
+		"localUrl":"http://localhost:8888/yourWebsite"
 	},
 
 	"localDatabase": {
-		"name":"vcwall_db_test",
+		"name":"your_Local_empty_db",
 		"user":"root",
 		"pass":"root",
 		"host":"localhost:8889"
