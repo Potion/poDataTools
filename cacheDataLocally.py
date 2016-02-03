@@ -18,7 +18,7 @@ class AssetGenerator(object):
         self.arg = arg
         self.url = self.arg.apiUrl
         self.tempFolder = os.path.join(self.scriptDir, "temp")
-        self.destination = args.localDirectory
+        self.destination = os.path.expanduser(args.localDirectory)
         self.uploadsDir = args.uploadDir
         self.uploadsPath = urllib.parse.urlparse(args.uploadDir).path
         self.numFiles = 0
@@ -58,8 +58,6 @@ class AssetGenerator(object):
             self.jsonString = req.read().decode(encoding)
         else:
             self.jsonString = req.read().decode()
-
-        self.json = json.loads(self.jsonString)
 
         self.jsonString = self.jsonString.replace("\\", "") # Strip backslashes put in by some APIs
 

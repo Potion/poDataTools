@@ -3,7 +3,7 @@ import subprocess
 from subprocess import call
 import sys
 
-def logVerboseMessage(message):
+def logSectionMessage(message):
 	if(args.verbose):
 		print()
 		print("-----------------------------------------------------")
@@ -12,13 +12,11 @@ def logVerboseMessage(message):
 
 # ------------------------------------------------------
 # Setup and Parse Config
-
 import argparse
-parser = argparse.ArgumentParser(prog="Wordpress Local Setup", description="Initial a local environment to mirror a remote Wordpress install.")
+parser = argparse.ArgumentParser(prog="Wordpress Local Sync", description="Initial a local environment to mirror a remote Wordpress install.")
 parser.add_argument("installDirectory", help="The directory to install wordpress into")
 parser.add_argument("configFile", help="The configuration file to use")
 parser.add_argument("-m", "--mampEnabled",	type=bool, required=False,	help="Enable this flag if you are using MAMP", default="false")
-parser.add_argument("-v", "--verbose",	required=False,	help="Enable this flag if you are using MAMP", default="false")
 
 args = parser.parse_args()
 
@@ -39,7 +37,7 @@ if args.mampEnabled == True:
 	mampPhpVersions = os.listdir(mampPath)
 	latestMampPhpVersion = mampPhpVersions[-1]
 
-	logVerboseMessage("Setting environment path for MAMP PHP/MYSQL")
+	logSectionMessage("Setting environment path for MAMP PHP/MYSQL")
 
 	# Set PATH Environment
 	os.environ["PATH"] = "/Applications/MAMP/bin/php/" + latestMampPhpVersion + "/bin:" + os.environ["PATH"]
@@ -48,7 +46,7 @@ if args.mampEnabled == True:
 # ------------------------------------------------------
 # Load Config
 
-logVerboseMessage("Loading JSON config file...")
+logSectionMessage("Loading JSON config file...")
 
 import json
 from pprint import pprint
@@ -72,17 +70,17 @@ def add_option_to_wpcli_command(command, option, value):
 
 
 # Pull the correct version of wordpress
-logVerboseMessage("Installing Wordpress...")
+logSectionMessage("Installing Wordpress...")
 pullCommand = 'wp core download'
 
 if config["version"]:
-	logVerboseMessage("Custom version requested: " + args.version)
+	logSectionMessage("Custom version requested: " + args.version)
 	pullCommand += ' --version ' + args.version
 
 call([pullCommand], shell=True)
 
 # Create Wordpress Config
-logVerboseMessage("Creating wp-config.php...")
+logSectionMessage("Creating wp-config.php...")
 
 configCommand = 'wp core config'
 configCommand = add_option_to_wpcli_command(configCommand, "dbname", config["localDatabase"]["name"])
@@ -93,7 +91,7 @@ configCommand = add_option_to_wpcli_command(configCommand, "dbhost", config["loc
 call([configCommand], shell=True)
 
 # Install Wordpress
-logVerboseMessage("Installing Wordpress...")
+logSectionMessage("Installing Wordpress...")
 
 installCommand = 'wp core install'
 installCommand = add_option_to_wpcli_command(installCommand, "url",				config["locations"]["localUrl"])
@@ -123,7 +121,7 @@ for plugin in wpMigratePlugins:
 # Sync
 
 # Set up license  for WP Migrate DB Pro
-logVerboseMessage("Syncing with server...")
+logSectionMessage("Syncing with server...")
 registerMessage = "Please go to " + config["locations"]["localUrl"] + "/wp-admin." 
 registerMessage += "\nLogin using username: " + config["info"]["admin_user"] + " and password: " + config["info"]["admin_password"]
 registerMessage += "\nGo to Tools->Migrate DB Pro"
@@ -139,6 +137,7 @@ print("\n\n")
 syncCommand = 'wp migratedb pull ' + config["locations"]['remoteUrl'] + ' ' + config["locations"]['remoteMigrateDBSecret']
 syncCommand = add_option_to_wpcli_command(syncCommand, "find", config["locations"]["remoteUrl"])
 syncCommand = add_option_to_wpcli_command(syncCommand, "replace", config["locations"]["localUrl"])
+syncCommand = add_option_to_wpcli_command(syncCommand, "media", "remove-and-copy")
 #syncCommand = add_option_to_wpcli_command(syncCommand, "media", "remove-and-copy")
 
 #print(syncCommand)
