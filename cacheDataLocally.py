@@ -30,24 +30,13 @@ class AssetGenerator(object):
             os.makedirs(self.tempFolder)
 
         # Get the JSON and Save it
-        self.loadAndParseJSON()
+        self.loadJSON();
+        self.getFilesFromJson()
 
+        self.saveJson()
         print("-", self.numFiles, "files downloaded")
 
-        print('- Saving json')
-        with open(os.path.join(self.tempFolder, "data.json"), 'w') as output:
-            json.dump(self.json, output)
 
-        # Replace uploads url with asset path
-        f = open(os.path.join(self.tempFolder, "data.json"), 'r')
-        filedata = f.read()
-        f.close()
-
-        newdata = filedata.replace(self.uploadsDir, "")
-
-        f = open(os.path.join(self.tempFolder, "data.json"), 'w')
-        f.write(newdata)
-        f.close()
 
         print('- Moving webassets to assets dir')
 
@@ -57,47 +46,58 @@ class AssetGenerator(object):
 
         print('Done.')
         print('')
- 
+
     # ------------------------------------------------------
     # Load and parse json
 
-    def loadAndParseJSON(self):
+    def loadJSON(self):
         req = urllib.request.urlopen(self.url)
-        encoding = req.headers.get_content_charset()
-        jsonString = req.read().decode(encoding)
-        self.json = json.loads(jsonString)
 
-        linkRegex = re.compile('http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\(\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+')
-        urls = re.findall(linkRegex, jsonString)
-        for url in urls:
-            self.parseUrl(url)
+        if(req.headers.get_content_charset()):
+            encoding = req.headers.get_content_charset()
+            self.jsonString = req.read().decode(encoding)
+        else:
+            self.jsonString = req.read().decode()
 
-        print(urls)
+        self.json = json.loads(self.jsonString)
+
+        self.jsonString = self.jsonString.replace("\\", "") # Strip backslashes put in by some APIs
 
     # ------------------------------------------------------
     # Parse unicode and grab urls
 
-    def parseUrl(self, url):
-        parsed = urllib.parse.urlparse(url)
+    def getFilesFromJson(self):
 
-        path = parsed.path
-        filename = path.split("/")[-1]
-        path = path.split("/")[:-1]
-        path = "/".join(path)
+        linkRegex = re.compile('http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\(\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+')
+        urls = re.findall(linkRegex, self.jsonString)
+        print(urls)
+        for url in urls:
+            parsed = urllib.parse.urlparse(url)
 
-        if (path != self.uploadsPath):
-            path = path.split(self.uploadsPath)[1]  # Remove the uploads directory
-            path = path[1:]  # Remove leading / from path
-            path = os.path.join(self.tempFolder, path)  # Add the tempfolder to the path
-        else:
-            path = self.tempFolder
+            path = parsed.path
+            filename = path.split("/")[-1]
+            path = path.split("/")[:-1]
+            path = "/".join(path)
 
-        # Create the directories if necessary
-        if not os.path.exists(path):
-            os.makedirs(path)
+            if (path != self.uploadsPath):
+                splitPath = path.split(self.uploadsPath)
+                try:
+                    path = path.split(self.uploadsPath)[1]  # Remove the uploads directory
+                    if(path[0] and path[0] is "/"):
+                        path = path[1:]  # Remove leading / from path
+                    path = os.path.join(self.tempFolder, path)  # Add the tempfolder to the path
+                except IndexError: 
+                    print("Could not find uploads path '", self.uploadsPath, "' in url ",  path)
+                    continue
+            else:
+                path = self.tempFolder
 
-        # Download the file
-        self.downloadFile(url, path, filename)
+            # Create the directories if necessary
+            if not os.path.exists(path):
+                os.makedirs(path)
+
+            # Download the file
+            self.downloadFile(url, path, filename)
 
     # ------------------------------------------------------
     # Download file to disk
@@ -133,6 +133,15 @@ class AssetGenerator(object):
         file.close()
         self.numFiles += 1
 
+
+
+
+    def saveJson(self):
+        print('- Saving json')
+        self.jsonString = self.jsonString.replace(self.uploadsDir, "")
+        f = open(os.path.join(self.tempFolder, "data.json"), 'w')
+        f.write(self.jsonString)
+        f.close()
 
 # ------------------------------------------------------
 # Set Parser Args
