@@ -2,11 +2,11 @@
 
 import argparse
 import os
-import json
 import urllib.request
 import urllib.parse
 import shutil
 import re
+
 
 
 class AssetGenerator(object):
