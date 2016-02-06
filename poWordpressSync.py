@@ -2,18 +2,30 @@ import os
 import argparse
 import json
 from subprocess import call
+import urllib.request
 
 class wordpressSync(object):
     def __init__(self, args):
-        # Constants
+
         self.MAMP_PATH = '/Applications/MAMP/bin/php/'
         self.SCRIPT_DIR = os.path.dirname(os.path.realpath(__file__))
         self.EXC_DIR = os.getcwd()
 
-        self.WP_MIGRATE_PRO_FILES_PATH =  self.SCRIPT_DIR + "/wp-migrate/"
-        self.WP_MIGRATE_PRO_PLUGINS = ['wp-migrate-db-pro', 'wp-migrate-db-pro-cli', 'wp-migrate-db-pro-media-files']
 
-        self.config = self.load_config(os.path.expanduser(args.configFile))
+        # Load Config
+        self.config = self.load_config(args.configFile)
+
+
+        # Set Constants
+
+        self.WP_MIGRATE_PRO_FILES_PATH =  self.SCRIPT_DIR + "/wp-migrate/"
+        self.WP_MIGRATE_PLUGIN_NAME = 'wp-migrate-db'
+        self.WP_MIGRATE_PRO_PLUGINS = {'wp-migrate-db-pro': 'https://deliciousbrains.com/dl/wp-migrate-db-pro-latest.zip',
+                                       'wp-migrate-db-pro-cli': 'https://deliciousbrains.com/dl/wp-migrate-db-pro-cli-latest.zip',
+                                       'wp-migrate-db-pro-media-files': 'https://deliciousbrains.com/dl/wp-migrate-db-pro-media-files-latest.zip'
+                                       }
+
+
 
         # Setup Environment
         installDir = os.path.expanduser(args.installDirectory)
@@ -130,6 +142,8 @@ class wordpressSync(object):
         configCommand = self.add_option_to_wpcli_command(configCommand, "dbpass", self.config["localDatabase"]["pass"])
         configCommand = self.add_option_to_wpcli_command(configCommand, "dbhost", self.config["localDatabase"]["host"])
 
+        configCommand = configCommand + " --extra-php <<PHP \ndefine( 'WPMDB_LICENCE', '" + self.config["migrationKeys"]['license'] + "' ); \nPHP"
+
         call([configCommand], shell=True)
 
     # Install Wordpress, initializing the MySQL DB Entries
@@ -152,37 +166,44 @@ class wordpressSync(object):
         self.log_section_message("Installing migration plugins")
 
         # Install base plugin
-        call(['wp plugin install wp-migrate-db'], shell=True)
+        call(['wp plugin install ' + self.WP_MIGRATE_PLUGIN_NAME], shell=True)
 
         # Install Pro Plugins
+
         for plugin in self.WP_MIGRATE_PRO_PLUGINS:
-            call(['wp plugin install ' + self.WP_MIGRATE_PRO_FILES_PATH + plugin + '.zip'], shell=True)
-            call(['wp plugin activate ' + plugin], shell=True)
-            call(['wp plugin update ' + plugin], shell=True)
-            # NOTE: Should we update them also? Will this work?
+            print(self.WP_MIGRATE_PRO_PLUGINS[plugin] + "?licence_key=" + self.config['migrationKeys']['license'])
+            self.download_and_install_wp_migrate_plugin(plugin, self.WP_MIGRATE_PRO_PLUGINS[plugin] + "?licence_key="
+                                                        + self.config['migrationKeys']['license']
+                                                        + "&site_url=" + self.config["locations"]["localUrl"])
+
+    # Download a plugin from the Delicious Brains server and install it
+    def download_and_install_wp_migrate_plugin(self, plugin_name, url):
+        print(url)
+        urllib.request.urlretrieve(url, "./plugin.zip")
+
+        call(['wp plugin install ./plugin.zip'], shell=True)
+        call(['wp plugin activate ' + plugin_name], shell=True)
+        call(['wp plugin update ' + plugin_name], shell=True)
+
+        os.remove('./plugin.zip')
+
 
     # ------------------------------------------------------
     # Sync down from remote to local using WP Migrate Pro
     def sync_with_remote(self):
         self.log_section_message("Syncing with server...")
 
-        # Show instructions to set license on local install
-        registerMessage = "Please go to " + self.config["locations"]["localUrl"] + "/wp-admin."
-        registerMessage += "\nLogin using username: " + self.config["info"]["admin_user"] + " and password: " + self.config["info"]["admin_password"]
-        registerMessage += "\nGo to Tools->Migrate DB Pro"
-        registerMessage += "\nGo to Settings, and enter license."
-        registerMessage += "\n\nPress Enter to continue once complete\n\n"
-        input(registerMessage)
-
         # Call Sync Command
-
-        # NOTE: Need to strip trailing slash from URLs if set
-        syncCommand = 'wp migratedb pull ' + self.config["locations"]['remoteUrl'] + ' ' + self.config["locations"]['remoteMigrateDBSecret']
+        syncCommand = 'wp migratedb pull ' + self.config["locations"]['remoteUrl'] + ' ' + self.config["migrationKeys"]['remoteSecret']
         syncCommand = self.add_option_to_wpcli_command(syncCommand, "find", self.config["locations"]["remoteUrl"])
         syncCommand = self.add_option_to_wpcli_command(syncCommand, "replace", self.config["locations"]["localUrl"])
         syncCommand = self.add_option_to_wpcli_command(syncCommand, "media", "remove-and-copy")
 
         call([syncCommand], shell=True)
+
+        # Regenerate permalinks
+
+
 
 
     def finish(self):
