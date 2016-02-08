@@ -1,3 +1,5 @@
 *.json
 !/wordpress/config_template.json
 .DS_STORE
+./**/.idea
+.idea
