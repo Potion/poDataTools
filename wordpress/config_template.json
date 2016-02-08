@@ -12,6 +12,11 @@
 		"localUrl":"http://localhost:8888/yourWebsite"
 	},
 
+	"migrationKeys": {
+		"license": "my-license-key-from-wp-migrate-db-pro",
+		"remoteSecret":"my-remote-site-secret-key"
+	},
+
 	"localDatabase": {
 		"name":"your_Local_empty_db",
 		"user":"root",

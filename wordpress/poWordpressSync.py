@@ -6,10 +6,11 @@ import urllib.request
 
 class wordpressSync(object):
     def __init__(self, args):
-
         self.MAMP_PATH = '/Applications/MAMP/bin/php/'
+        self.MAMP_ENABLED = args.mampEnabled
         self.SCRIPT_DIR = os.path.dirname(os.path.realpath(__file__))
         self.EXC_DIR = os.getcwd()
+        self.INSTALL_DIR = os.path.expanduser(args.localDirectory)
 
 
         # Load Config
@@ -17,38 +18,32 @@ class wordpressSync(object):
 
 
         # Set Constants
-
         self.WP_MIGRATE_PRO_FILES_PATH =  self.SCRIPT_DIR + "/wp-migrate/"
         self.WP_MIGRATE_PLUGIN_NAME = 'wp-migrate-db'
         self.WP_MIGRATE_PRO_PLUGINS = {'wp-migrate-db-pro': 'https://deliciousbrains.com/dl/wp-migrate-db-pro-latest.zip',
                                        'wp-migrate-db-pro-cli': 'https://deliciousbrains.com/dl/wp-migrate-db-pro-cli-latest.zip',
                                        'wp-migrate-db-pro-media-files': 'https://deliciousbrains.com/dl/wp-migrate-db-pro-media-files-latest.zip'
                                        }
+        self.setup_environment()
 
+        if args.action == 'create':
+            self.create()
+            if(args.andSync == True):
+                self.sync_with_remote()
+            self.finishInstallation()
 
+        elif args.action == 'sync':
+            self.sync_with_remote()
 
-        # Setup Environment
-        installDir = os.path.expanduser(args.installDirectory)
-        if not os.path.exists(installDir):
-            os.makedirs(installDir)
+        elif args.action == 'push':
+            self.log_section_message("Attempting push to remote server.")
+            userConfirmation = input("This will overwrite the remote server with your local content."
+                                     "\nThis can not be undone. Are you sure? \nType y/n and hit enter/return: ")
+            if userConfirmation == 'y' or userConfirmation == 'Y':
+                self.push_to_remote()
+        else:
+            self.log_message("Action '" + args.action + "' is not known. Please run -h for help.")
 
-        if args.mampEnabled:
-            self.set_mamp_environment()
-
-        self.create_database()
-        self.change_directory(installDir)
-
-        # Install Wordpress
-        self.download_wordpress()
-        self.config_wordpress()
-        self.install_wordpress()
-
-        # Sync with Server
-        self.install_migration_plugins()
-        self.sync_with_remote()
-
-        # Done!
-        self.finish()
 
     # ------------------------------------------------------
     # Utils
@@ -91,6 +86,17 @@ class wordpressSync(object):
     # ------------------------------------------------------
     # Environment Setup
 
+    # Make sure the install dir is active, handle MAMP Path, etc.
+    def setup_environment(self):
+        if not os.path.exists(self.INSTALL_DIR):
+            os.makedirs(self.INSTALL_DIR)
+
+        if self.MAMP_ENABLED == True:
+            self.set_mamp_environment()
+
+        self.change_directory(self.INSTALL_DIR)
+
+    # Create the MySQL database using the command line (avoids module dependencies)
     def create_database(self):
         command = 'echo "CREATE DATABASE IF NOT EXISTS ' + self.config["localDatabase"]["name"] + '" | mysql -u ' + self.config["localDatabase"]["user"] + ' -p' + self.config["localDatabase"]["pass"]
         call([command], shell=True)
@@ -116,6 +122,20 @@ class wordpressSync(object):
             jsonFile["locations"]['localUrl'] = self.strip_trailing_slash(jsonFile["locations"]['localUrl'])
             jsonFile["locations"]['remoteUrl'] = self.strip_trailing_slash(jsonFile["locations"]['remoteUrl'])
             return jsonFile
+
+
+    # ------------------------------------------------------
+    # Actions
+    def create(self):
+        self.create_database()
+        self.change_directory(self.INSTALL_DIR)
+
+        # Install Wordpress
+        self.download_wordpress()
+        self.config_wordpress()
+        self.install_wordpress()
+        self.install_migration_plugins()
+        self.finishInstallation()
 
     # ------------------------------------------------------
     # Wordpress install/WP CLI Commands
@@ -187,38 +207,62 @@ class wordpressSync(object):
 
         os.remove('./plugin.zip')
 
+    def finishInstallation(self):
+        self.log_section_message("Installation complete.")
+        self.log_message("You can visit the admin panel for your local site clone at " + self.config["locations"]["localUrl"] + " and log in with your remote site credentials.")
 
     # ------------------------------------------------------
     # Sync down from remote to local using WP Migrate Pro
+    def create_sync_command(self, action, find, replace) -> str:
+        syncCommand = 'wp migratedb ' + action + ' ' + self.config["locations"]['remoteUrl'] + ' ' + self.config["migrationKeys"]['remoteSecret']
+        syncCommand = self.add_option_to_wpcli_command(syncCommand, "find", find)
+        syncCommand = self.add_option_to_wpcli_command(syncCommand, "replace", replace)
+        syncCommand = self.add_option_to_wpcli_command(syncCommand, "media", "remove-and-copy")
+        return syncCommand
+
     def sync_with_remote(self):
         self.log_section_message("Syncing with server...")
 
         # Call Sync Command
-        syncCommand = 'wp migratedb pull ' + self.config["locations"]['remoteUrl'] + ' ' + self.config["migrationKeys"]['remoteSecret']
-        syncCommand = self.add_option_to_wpcli_command(syncCommand, "find", self.config["locations"]["remoteUrl"])
-        syncCommand = self.add_option_to_wpcli_command(syncCommand, "replace", self.config["locations"]["localUrl"])
-        syncCommand = self.add_option_to_wpcli_command(syncCommand, "media", "remove-and-copy")
-
+        syncCommand = self.create_sync_command('pull', self.config["locations"]["remoteUrl"], self.config["locations"]["localUrl"])
         call([syncCommand], shell=True)
 
-        # Regenerate permalinks
-
-
-
-
-    def finish(self):
-        self.log_section_message("Installation and syncing complete.")
+        self.log_section_message("Sync complete.")
         self.log_message("Local site " + self.config["locations"]["localUrl"] + " now mirrors " + self.config["locations"]["remoteUrl"])
-        self.log_message("You can visit the admin panel for your local site clone at " + self.config["locations"]["localUrl"] + " and log in with your remote site credentials.")
+
+    def push_to_remote(self):
+        self.log_section_message("Pushing to server...")
+
+        # Call Sync Command
+        syncCommand = self.create_sync_command('push', self.config["locations"]["localUrl"], self.config["locations"]["remoteUrl"])
+        call([syncCommand], shell=True)
+
+        self.log_section_message("Push complete.")
+        self.log_message("Remote site " + self.config["locations"]["remoteUrl"] + " now mirrors " + self.config["locations"]["localUrl"])
+
+
+
 
 
 # ----------------------------------------------------
 # Run the program
 
 parser = argparse.ArgumentParser(prog="Wordpress Local Sync", description="Initial a local environment to mirror a remote Wordpress install.")
-parser.add_argument("installDirectory", help="The directory to install wordpress into")
+
+parser.add_argument("localDirectory", help="The directory to install or sync wordpress into")
 parser.add_argument("configFile", help="The configuration file to use")
-parser.add_argument("-m", "--mampEnabled",	type=bool, required=False,	help="Enable this flag if you are using MAMP", default="false")
+
+parser.add_argument("-m", "--mampEnabled",	action="store_true", required=False, help="Enable this flag if you are using MAMP", default=False)
+
+subparsers = parser.add_subparsers(dest="action", help='The action you would like to perform')
+
+parser_create = subparsers.add_parser('create', help='a help')
+parser_create.add_argument("-s", "--andSync",	action="store_true", required=False, help="Sync after creating.", default="false")
+
+parser_sync = subparsers.add_parser('sync', help='a help')
+
+parser_push = subparsers.add_parser('push', help='a help')
 
 arguments = parser.parse_args()
+
 poWordpressSync = wordpressSync(arguments)
