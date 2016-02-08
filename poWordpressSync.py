@@ -208,6 +208,8 @@ class wordpressSync(object):
 
     def finish(self):
         self.log_section_message("Installation and syncing complete.")
+        self.log_message("Local site " + self.config["locations"]["localUrl"] + " now mirrors " + self.config["locations"]["remoteUrl"])
+        self.log_message("You can visit the admin panel for your local site clone at " + self.config["locations"]["localUrl"] + " and log in with your remote site credentials.")
 
 
 # ----------------------------------------------------
