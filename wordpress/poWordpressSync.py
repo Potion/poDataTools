@@ -3,6 +3,7 @@ import argparse
 import json
 from subprocess import call
 import urllib.request
+from shutil import copyfile
 
 class wordpressSync(object):
     def __init__(self, args):
@@ -13,9 +14,6 @@ class wordpressSync(object):
         self.INSTALL_DIR = os.path.expanduser(args.localDirectory)
 
 
-        # Load Config
-        self.config = self.load_config(args.configFile)
-
 
         # Set Constants
         self.WP_MIGRATE_PRO_FILES_PATH =  self.SCRIPT_DIR + "/wp-migrate/"
@@ -25,6 +23,10 @@ class wordpressSync(object):
                                        'wp-migrate-db-pro-media-files': 'https://deliciousbrains.com/dl/wp-migrate-db-pro-media-files-latest.zip'
                                        }
         self.setup_environment()
+
+
+        self.copy_supporting_files()
+        os._exit(0)
 
         if args.action == 'create':
             self.create()
@@ -131,6 +133,7 @@ class wordpressSync(object):
         self.change_directory(self.INSTALL_DIR)
 
         # Install Wordpress
+        self.copy_supporting_files()
         self.download_wordpress()
         self.config_wordpress()
         self.install_wordpress()
@@ -139,6 +142,25 @@ class wordpressSync(object):
 
     # ------------------------------------------------------
     # Wordpress install/WP CLI Commands
+
+    # Check for required files (.gitignore and wp-cli.yml
+    # Add if they don't exist, add them
+    def copy_supporting_files(self):
+        self.log_section_message("Copying required files.")
+        support_dir = self.SCRIPT_DIR + "/supporting_files"
+        for filename in os.listdir(support_dir):
+            if(filename == "_.gitignore"):
+                new_filename = ".gitignore"
+            else:
+                new_filename = filename
+
+            file_path = support_dir + "/" + filename
+            new_file_path = self.INSTALL_DIR + "/" + new_filename
+            if not os.path.exists(new_file_path):
+                copyfile(file_path, new_file_path)
+            else:
+                self.log_message("File " + new_filename + " already exists, please make sure it is consistent with " + file_path)
+
 
     # Download correct version of wordpress
     def download_wordpress(self):
