@@ -250,6 +250,10 @@ class wordpressSync(object):
         syncCommand = self.create_sync_command('pull', self.config["locations"]["remoteUrl"], self.config["locations"]["localUrl"], syncMedia)
         call([syncCommand], shell=True)
 
+        # Flush rewrite for permalink reset
+        call(['wp rewrite structure $(wp option get permalink_structure)'], shell=True)
+        call(['wp rewrite flush --hard'], shell=True)
+
         self.log_section_message("Sync complete.")
         self.log_message("Local site " + self.config["locations"]["localUrl"] + " now mirrors " + self.config["locations"]["remoteUrl"])
 
