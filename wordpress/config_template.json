@@ -9,7 +9,9 @@
 
 	"locations": {
 		"remoteUrl":"http://wwww.yourwebsite.com/wordpressDir/",
-		"localUrl":"http://localhost:8888/yourWebsite"
+		"remoteDirectory":"/home/potionwebsite/yourwebsite.com",
+		"localUrl":"http://localhost:8888/yourWebsite",
+		"localDirectory":"/Applications/MAMP/htdocs/yourWebsite"
 	},
 
 	"migrationKeys": {
