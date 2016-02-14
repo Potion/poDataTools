@@ -247,7 +247,10 @@ class wordpressSync(object):
         self.log_section_message("Syncing with server...")
 
         # Call Sync Command
-        syncCommand = self.create_sync_command('pull', self.config["locations"]["remoteUrl"], self.config["locations"]["localUrl"], syncMedia)
+        syncCommand = self.create_sync_command('pull',
+                                               self.config["locations"]["remoteUrl"] + "," + self.config["locations"]["remoteDirectory"],
+                                               self.config["locations"]["localUrl"] + "," + self.config["locations"]["localDirectory"],
+                                               syncMedia)
         call([syncCommand], shell=True)
 
         # Flush rewrite for permalink reset
@@ -261,7 +264,10 @@ class wordpressSync(object):
         self.log_section_message("Pushing to server...")
 
         # Call Sync Command
-        syncCommand = self.create_sync_command('push', self.config["locations"]["localUrl"], self.config["locations"]["remoteUrl"], syncMedia)
+        syncCommand = self.create_sync_command('push',
+                                               self.config["locations"]["localUrl"] + "," + self.config["locations"]["localDirectory"],
+                                               self.config["locations"]["remoteUrl"] + "," + self.config["locations"]["remoteDirectory"],
+                                               syncMedia)
         call([syncCommand], shell=True)
 
         self.log_section_message("Push complete.")
