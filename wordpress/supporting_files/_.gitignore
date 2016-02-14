@@ -8,6 +8,7 @@ wp-content/wp-cache-config.php
 sitemap.xml
 sitemap.xml.gz
 *.log
+*.json
 /wp-*.php
 /index.php
 license.txt
