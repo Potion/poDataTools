@@ -295,6 +295,7 @@ parser_sync = subparsers.add_parser('sync', help='a help')
 parser_sync.add_argument("--withMedia",	action="store_true", required=False, help="Also sync media files.", default=False)
 
 parser_push = subparsers.add_parser('push', help='a help')
+parser_push.add_argument("--withMedia", action="store_true", required=False, help="Also sync media files.", default=False)
 
 arguments = parser.parse_args()
 print(arguments)
