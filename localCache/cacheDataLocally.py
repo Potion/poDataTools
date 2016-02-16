@@ -19,8 +19,12 @@ class AssetGenerator(object):
         self.url = self.arg.apiUrl
         self.tempFolder = os.path.join(self.scriptDir, "temp")
         self.destination = os.path.expanduser(args.localDirectory)
+
         self.uploadsDir = args.uploadDir
-        self.uploadsPath = urllib.parse.urlparse(args.uploadDir).path
+        if self.uploadsDir.endswith("/"):
+            self.uploadsDir =  self.uploadsDir[:-1]
+
+        self.uploadsPath = urllib.parse.urlparse(self.uploadsDir).path
         self.numFiles = 0
 
         print(self.url, self.tempFolder, self.destination)
@@ -60,6 +64,7 @@ class AssetGenerator(object):
             self.jsonString = req.read().decode()
 
         self.jsonString = self.jsonString.replace("\\", "") # Strip backslashes put in by some APIs
+        self.jsonString = self.jsonString.replace('""', '\"\\"')
 
     # ------------------------------------------------------
     # Parse unicode and grab urls
@@ -81,7 +86,8 @@ class AssetGenerator(object):
                 splitPath = path.split(self.uploadsPath)
                 try:
                     path = path.split(self.uploadsPath)[1]  # Remove the uploads directory
-                    if(path[0] and path[0] is "/"):
+                    if(path.beginswith("/")):
+                    #if(path[0] and path[0] is "/"):
                         path = path[1:]  # Remove leading / from path
                     path = os.path.join(self.tempFolder, path)  # Add the tempfolder to the path
                 except IndexError: 
@@ -136,7 +142,7 @@ class AssetGenerator(object):
 
     def saveJson(self):
         print('- Saving json')
-        self.jsonString = self.jsonString.replace(self.uploadsDir, "")
+        self.jsonString = self.jsonString.replace(self.uploadsDir + "/", "")
         f = open(os.path.join(self.tempFolder, "data.json"), 'w')
         f.write(self.jsonString)
         f.close()
