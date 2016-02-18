@@ -6,6 +6,7 @@ import urllib.request
 import urllib.parse
 import shutil
 import re
+import json
 
 
 
@@ -63,8 +64,8 @@ class AssetGenerator(object):
         else:
             self.jsonString = req.read().decode()
 
-        self.jsonString = self.jsonString.replace("\\", "") # Strip backslashes put in by some APIs
-        self.jsonString = self.jsonString.replace('""', '\"\\"')
+        jsonObj = json.loads(self.jsonString)
+        self.jsonString = json.dumps(jsonObj)
 
     # ------------------------------------------------------
     # Parse unicode and grab urls
@@ -73,8 +74,10 @@ class AssetGenerator(object):
 
         linkRegex = re.compile('http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\(\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+')
         urls = re.findall(linkRegex, self.jsonString)
-        print(urls)
+
         for url in urls:
+            #Remove any backslashes
+            url = url.replace("\\", "")
             parsed = urllib.parse.urlparse(url)
 
             path = parsed.path
