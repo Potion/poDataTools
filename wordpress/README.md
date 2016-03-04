@@ -7,6 +7,8 @@ A script for syncing Wordpress installs between servers, both local and remote.
 - WP-Cli
 	- Command line interface for wordpress
 	- Install instructions at [http://wp-cli.org](http://wp-cli.org)
+- MAMP (optional)
+	- Install instructions at [https://www.mamp.info/en/](https://www.mamp.info/en/)
 
 ## Structure
 The following structure is used by Potion (and this script) to create a seamless Wordpress process, including version control and backups.
@@ -74,7 +76,7 @@ Below is a commented version to use for reference:
 		"name":"your_Local_empty_db", # Local Database name (created if it doesn't exist)
 		"user":"root", # Your local MySQL user name
 		"pass":"root", # Your local MySQL password
-		"host":"localhost:8889" # Your local host
+		"host":"localhost:8889" # Your local host MySQL port
 	}
 }
 
@@ -83,22 +85,27 @@ Below is a commented version to use for reference:
 
   
 ## Starting a new site
-To create a brand-new site, 
+To create a brand-new site:
 
 
+1. Install WP-CLI
 
+2. Install Python 3
 
-	
+3. Install MAMP (optional)
 
+4. Create local mysql database. Go to your local phpMyAdmin and create a new database.
 
+5. Clone Repository for CMS into Sites directory (/Users/YourName/Sites/YourProject_CMS)
 
-Create local mysql database
+6. Add poDataTools submodule at the root of your Git repo.
 
-Clone Repository for CMS into sites directory
+7. Create a copy of the config-template.json file (i.e. yourproject_cms.json) in the poDataTools/wordpress folder. Note: the file needs to stay in that folder.
 
-Install WP-CLI
+8. Edit yourproject_cms.json. You can skip the "remoteSecret" field, since the first installation is local.
 
-Copy config-template
+9. Run installation script from the poDataTools/wordpress folder. If you are using MAMP, make sure you use the flag `--mampEnabled`
 
-Edit copy
-
+```
+python3 poWordpressTool.py --mampEnabled /Users/YourName/Sites/YourProject_CMS yourproject_cms.json create
+```
