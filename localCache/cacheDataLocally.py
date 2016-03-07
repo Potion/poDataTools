@@ -8,8 +8,6 @@ import shutil
 import re
 import json
 
-
-
 class AssetGenerator(object):
     def __init__(self, arg):
         super(AssetGenerator, self).__init__()
@@ -65,7 +63,7 @@ class AssetGenerator(object):
             self.jsonString = req.read().decode()
 
         jsonObj = json.loads(self.jsonString)
-        self.jsonString = json.dumps(jsonObj)
+        self.jsonString = json.dumps(jsonObj, indent=4, separators=(',', ': '))
 
     # ------------------------------------------------------
     # Parse unicode and grab urls
