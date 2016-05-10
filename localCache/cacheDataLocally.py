@@ -8,24 +8,16 @@ import shutil
 import re
 import json
 
-
-
 class AssetGenerator(object):
-    def __init__(self, arg):
+    def __init__(self, localCacheDirectory, apiURL):
         super(AssetGenerator, self).__init__()
 
         self.scriptDir = os.path.dirname(os.path.abspath(__file__))
 
-        self.arg = arg
-        self.url = self.arg.apiUrl
+        self.url = apiURL
         self.tempFolder = os.path.join(self.scriptDir, "temp")
-        self.destination = os.path.expanduser(args.localDirectory)
+        self.destination = os.path.expanduser(localCacheDirectory)
 
-        self.uploadsDir = args.uploadDir
-        if self.uploadsDir.endswith("/"):
-            self.uploadsDir =  self.uploadsDir[:-1]
-
-        self.uploadsPath = urllib.parse.urlparse(self.uploadsDir).path
         self.numFiles = 0
 
         print(self.url, self.tempFolder, self.destination)
@@ -39,12 +31,12 @@ class AssetGenerator(object):
         self.getFilesFromJson()
 
         self.saveJson()
+
+        # Print status
         print("-", self.numFiles, "files downloaded")
-
-
-
         print('- Moving webassets to assets dir')
 
+        # Copy assets to new location
         if os.path.exists(os.path.join(self.destination, self.destination)):
             shutil.rmtree(os.path.join(self.destination, self.destination))
         shutil.move(self.tempFolder, self.destination)
@@ -71,40 +63,25 @@ class AssetGenerator(object):
     # Parse unicode and grab urls
 
     def getFilesFromJson(self):
-
         linkRegex = re.compile('http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\(\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+')
         urls = re.findall(linkRegex, self.jsonString)
 
         for url in urls:
-            #Remove any backslashes
-            url = url.replace("\\", "")
+            # Remove trailing backslash, which may be an escape character
+            url = url.rstrip("\\")
+
+            # Parse the URL
             parsed = urllib.parse.urlparse(url)
 
+            # Get the path + Filename
             path = parsed.path
             filename = path.split("/")[-1]
-            path = path.split("/")[:-1]
-            path = "/".join(path)
 
-            if (path != self.uploadsPath):
-                splitPath = path.split(self.uploadsPath)
-                try:
-                    path = path.split(self.uploadsPath)[1]  # Remove the uploads directory
-                    if(path.beginswith("/")):
-                    #if(path[0] and path[0] is "/"):
-                        path = path[1:]  # Remove leading / from path
-                    path = os.path.join(self.tempFolder, path)  # Add the tempfolder to the path
-                except IndexError: 
-                    print("Could not find uploads path '", self.uploadsPath, "' in url ",  path)
-                    continue
-            else:
-                path = self.tempFolder
-
-            # Create the directories if necessary
-            if not os.path.exists(path):
-                os.makedirs(path)
+            # Replace the URL in the JSON with the filename
+            self.jsonString = self.jsonString.replace(url, filename)
 
             # Download the file
-            self.downloadFile(url, path, filename)
+            self.downloadFile(url, self.tempFolder, filename)
 
     # ------------------------------------------------------
     # Download file to disk
@@ -141,21 +118,22 @@ class AssetGenerator(object):
         self.numFiles += 1
 
 
-
-
     def saveJson(self):
         print('- Saving json')
-        self.jsonString = self.jsonString.replace(self.uploadsDir + "/", "")
         f = open(os.path.join(self.tempFolder, "data.json"), 'w')
         f.write(self.jsonString)
         f.close()
 
-# ------------------------------------------------------
-# Set Parser Args
-parser = argparse.ArgumentParser(description='-- AssetGenerator --')
-parser.add_argument("localDirectory", help="The directory to cache the data + assets into.")
-parser.add_argument("apiUrl", action="store", help="API URL")
-parser.add_argument("uploadDir", help="The location for the uploads folder on the remote server.")
-args = parser.parse_args()
 
-assetGenerator = AssetGenerator(args)
+# ------------------------------------------------------
+# Main Execution, script is being run standalone
+# Set Parser Args
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description='-- AssetGenerator --')
+    parser.add_argument("localCacheDirectory", help="The directory to cache the data + assets into.")
+    parser.add_argument("apiURL", action="store", help="API URL")
+
+    args = parser.parse_args()
+
+    assetGenerator = AssetGenerator(args.localCacheDirectory, args.apiURL)
