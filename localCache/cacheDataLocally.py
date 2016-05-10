@@ -7,47 +7,77 @@ import urllib.parse
 import shutil
 import re
 import json
+import sys
+import datetime
+import math
+
+
+# Convenience func to convert filesizes
+# size is in kB
+# from http://stackoverflow.com/questions/5194057/better-way-to-convert-file-sizes-in-python
+def convertSize(size):
+    if (size == 0):
+        return '0B'
+    size_name = ("KB", "MB", "GB", "TB", "PB", "EB", "ZB", "YB")
+    i = int(math.floor(math.log(size, 1024)))
+    p = math.pow(1024, i)
+    s = round(size / p, 2)
+    return '%s %s' % (s, size_name[i])
 
 class AssetGenerator(object):
     def __init__(self, localCacheDirectory, apiURL):
         super(AssetGenerator, self).__init__()
 
+        # Vars to report what we did on complete
+        self.startTime = datetime.datetime.now()
+        self.totalBytes = 0
+        self.numFiles = 0
+
+        # Our current path
         self.scriptDir = os.path.dirname(os.path.abspath(__file__))
 
+        # Store member vars
         self.url = apiURL
         self.tempFolder = os.path.join(self.scriptDir, "temp")
         self.destination = os.path.expanduser(localCacheDirectory)
-
-        self.numFiles = 0
-
-        print(self.url, self.tempFolder, self.destination)
 
         # Create temporary storage for files while downloading
         if not os.path.exists(self.tempFolder):
             os.makedirs(self.tempFolder)
 
         # Get the JSON and Save it
-        self.loadJSON();
+        print("Loading file from '{0}'...".format(self.url))
+        self.loadJSON()
+
+        print('\nRetrieving files...')
         self.getFilesFromJson()
 
+        print('\nFinished retrieving files.')
+        print("- {0} files downloaded".format(self.numFiles))
+        print("- Total size of all files: {0}".format(convertSize(self.totalBytes/1000)))
+
+        print("\n Finishing Up...")
+        print('- Saving json')
         self.saveJson()
 
         # Print status
-        print("-", self.numFiles, "files downloaded")
-        print('- Moving webassets to assets dir')
+        print('- Moving files to assets dir {0}'.format(localCacheDirectory))
 
         # Copy assets to new location
         if os.path.exists(os.path.join(self.destination, self.destination)):
             shutil.rmtree(os.path.join(self.destination, self.destination))
         shutil.move(self.tempFolder, self.destination)
 
-        print('Done.')
+        totalTime = datetime.datetime.now() - self.startTime
+
+        print('\nCompleted, total execution time: {0}.'.format(totalTime))
         print('')
 
     # ------------------------------------------------------
     # Load and parse json
 
     def loadJSON(self):
+
         req = urllib.request.urlopen(self.url)
 
         if(req.headers.get_content_charset()):
@@ -77,11 +107,11 @@ class AssetGenerator(object):
             path = parsed.path
             filename = path.split("/")[-1]
 
-            # Replace the URL in the JSON with the filename
-            self.jsonString = self.jsonString.replace(url, filename)
-
             # Download the file
             self.downloadFile(url, self.tempFolder, filename)
+
+            # Replace the URL in the JSON with the filename
+            self.jsonString = self.jsonString.replace(url, filename)
 
     # ------------------------------------------------------
     # Download file to disk
@@ -91,35 +121,41 @@ class AssetGenerator(object):
             print("NO FILENAME!")
             filename = url.split('/')[-1]
 
-        request = urllib.request.urlopen(url)
+        filepath = os.path.join(path, filename)
 
-        file = open(os.path.join(path, filename), 'wb')
+        print("- Downloading: %s from: %s" % (filename, url))
+        filename, headers = urllib.request.urlretrieve(url, filepath, reporthook=self.downloadProgress)
 
-        if request.getheader("Content-Length"):
-            filesize = int(request.getheader("Content-Length"))
-        else:
-            filesize = 1
+        # Record total amount the script has downloaded
+        self.totalBytes += int(headers['Content-Length'])
 
-        print("- Downloading: %s Bytes: %s From: %s" % (filename, filesize, url))
 
-        file_size_dl = 0
-        block_sz = 8192
-        while True:
-            buffer = request.read(block_sz)
-            if not buffer:
-                break
-
-            file_size_dl += len(buffer)
-            file.write(buffer)
-            status = r"%10d  [%3.2f%%]" % (file_size_dl, file_size_dl * 100. / filesize)
-            status = status + chr(8) * (len(status) + 1)
-
-        file.close()
         self.numFiles += 1
 
+    def downloadProgress(self,count, blocksize, totalsize):
+
+        readsofar = count * blocksize
+
+        # The last block may contain a lot of empty data,
+        # which will throw off progress reporting
+        if readsofar > totalsize:
+            readsofar = totalsize
+
+        percent = int(readsofar * 100 / totalsize)
+
+        if percent <= 99:
+            progressString = "-- Retrieved {0}/{1} bytes ({2}%)".format(readsofar, totalsize, percent)
+            sys.stdout.write(progressString)
+
+            # Clear for next progress write
+            for c in progressString:
+                sys.stdout.write("\b")
+            sys.stdout.flush()
+        else:
+            finishedString = "-- Finished downloading {0} bytes.\n".format(totalsize)
+            sys.stdout.write(finishedString)
 
     def saveJson(self):
-        print('- Saving json')
         f = open(os.path.join(self.tempFolder, "data.json"), 'w')
         f.write(self.jsonString)
         f.close()
