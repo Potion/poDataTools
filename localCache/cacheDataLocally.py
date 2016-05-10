@@ -10,6 +10,10 @@ import json
 import sys
 import datetime
 import math
+import socket
+
+# Set the default timeout, if you're including this script elsewhere you should write this after importing
+socket.setdefaulttimeout(60)
 
 
 # Convenience func to convert filesizes
@@ -77,14 +81,9 @@ class AssetGenerator(object):
     # Load and parse json
 
     def loadJSON(self):
+        filename, headers = self.downloadFile(self.url, self.tempFolder, 'data.json')
 
-        req = urllib.request.urlopen(self.url)
-
-        if(req.headers.get_content_charset()):
-            encoding = req.headers.get_content_charset()
-            self.jsonString = req.read().decode(encoding)
-        else:
-            self.jsonString = req.read().decode()
+        self.jsonString = open(filename).read()
 
         jsonObj = json.loads(self.jsonString)
         self.jsonString = json.dumps(jsonObj)
@@ -118,19 +117,37 @@ class AssetGenerator(object):
 
     def downloadFile(self, url, path, filename=None):
         if filename == None:
-            print("NO FILENAME!")
             filename = url.split('/')[-1]
 
         filepath = os.path.join(path, filename)
 
         print("- Downloading: %s from: %s" % (filename, url))
-        filename, headers = urllib.request.urlretrieve(url, filepath, reporthook=self.downloadProgress)
 
-        # Record total amount the script has downloaded
-        self.totalBytes += int(headers['Content-Length'])
+        # Attempt to download
+        errorMessage = ""
+        try:
+            filename, headers = urllib.request.urlretrieve(url, filepath, reporthook=self.downloadProgress)
 
+        except urllib.error.HTTPError as e:
+            errorMessage = ("The server couldn't fulfill the request for {0}. Error code: {1}".format(url, e.code))
 
-        self.numFiles += 1
+        except urllib.error.URLError as e:
+            errorMessage = ("We failed to reach a server while attempting to reach {0}. Reason: {1}".format(url, e.reason))
+        else:
+            # Everything worked ok
+            # Record total amount the script has downloaded
+            contentLength = headers['Content-Length']
+
+            if contentLength:
+                self.totalBytes += int(headers['Content-Length'])
+
+            self.numFiles += 1
+
+            return filename, headers
+
+        if errorMessage != "":
+            print('\nThere was an error attempting to download {0}, which is found in the file {1}\n'.format(url, self.url))
+            raise ValueError('cacheDataLocally.py: File Download Error: {0}'.format(errorMessage))
 
     def downloadProgress(self,count, blocksize, totalsize):
 
@@ -151,7 +168,7 @@ class AssetGenerator(object):
             for c in progressString:
                 sys.stdout.write("\b")
             sys.stdout.flush()
-        else:
+        elif totalsize != -1:
             finishedString = "-- Finished downloading {0} bytes.\n".format(totalsize)
             sys.stdout.write(finishedString)
 
