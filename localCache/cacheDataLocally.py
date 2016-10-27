@@ -29,8 +29,11 @@ def convertSize(size):
     return '%s %s' % (s, size_name[i])
 
 class AssetGenerator(object):
-    def __init__(self, localCacheDirectory, apiURL):
+    def __init__(self, localCacheDirectory, apiURL, numRetries=3):
         super(AssetGenerator, self).__init__()
+
+        # Number of times to retry failed download
+        self.numRetries = numRetries
 
         # Vars to report what we did on complete
         self.startTime = datetime.datetime.now()
@@ -115,7 +118,7 @@ class AssetGenerator(object):
     # ------------------------------------------------------
     # Download file to disk
 
-    def downloadFile(self, url, path, filename=None):
+    def downloadFile(self, url, path, filename=None, retryNum=0):
         if filename == None:
             filename = url.split('/')[-1]
 
@@ -132,7 +135,10 @@ class AssetGenerator(object):
             errorMessage = ("The server couldn't fulfill the request for {0}. Error code: {1}".format(url, e.code))
 
         except urllib.error.URLError as e:
-            errorMessage = ("We failed to reach a server while attempting to reach {0}. Reason: {1}".format(url, e.reason))
+            if retryNum < self.numRetries:
+                self.downloadFile(url, path, filename, retryNum)
+            else:
+                errorMessage = ("We failed to reach a server while attempting to reach {0}. Reason: {1}".format(url, e.reason))
         else:
             # Everything worked ok
             # Record total amount the script has downloaded
