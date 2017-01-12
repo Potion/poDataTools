@@ -117,55 +117,55 @@ To deploy the local site to the client's deployment server:
 
 
 1. SSH to the deployment server
-```
-ssh myusername@myclientserver.com
-```
+	```
+	ssh myusername@myclientserver.com
+	```
 
 2. Make sure Git is instaled on the server, or install it.
 
 3. Configure git so it has Potion's user for installations:
-user: potioninstallation
-email: orders@potiondesign.com
-```
-git config --global user.name "potioninstallation"
-git config --global user.email orders@potiondesign.com
-git config --list
-```
-Note: Remember to add the potioninstallation user as a contributor to your Github repository.
+	user: potioninstallation
+	email: orders@potiondesign.com
+	```
+	git config --global user.name "potioninstallation"
+	git config --global user.email orders@potiondesign.com
+	git config --list
+	```
+	Note: Remember to add the potioninstallation user as a contributor to your Github repository.
 
 4. Generate Git SSH key, if neeeded, and add it to the Github account.
-[https:///help.github.com/articles/checking-for-existing-ssh-keys/](https:///help.github.com/articles/checking-for-existing-ssh-keys/)
-[https:///help.github.com/articles/generating-a-new-ssh-key-and-adding-it-to-the-ssh-agent/](https:///help.github.com/articles/generating-a-new-ssh-key-and-adding-it-to-the-ssh-agent/)
-[https:///help.github.com/articles/adding-a-new-ssh-key-to-your-github-account/](https:///help.github.com/articles/adding-a-new-ssh-key-to-your-github-account/)
+	[https:///help.github.com/articles/checking-for-existing-ssh-keys/](https:///help.github.com/articles/checking-for-existing-ssh-keys/)
+	[https:///help.github.com/articles/generating-a-new-ssh-key-and-adding-it-to-the-ssh-agent/](https:///help.github.com/articles/generating-a-new-ssh-key-and-adding-it-to-the-ssh-agent/)
+	[https:///help.github.com/articles/adding-a-new-ssh-key-to-your-github-account/](https:///help.github.com/articles/adding-a-	new-ssh-key-to-your-github-account/)
 
-Note: If pbcopy is not installed on the server, try this:
-```
-cat ~/.ssh/id_rsa.pub
-```
-copy the ssh key and past it in your Github account
+	Note: If pbcopy is not installed on the server, try this:
+	```
+	cat ~/.ssh/id_rsa.pub
+	```
+	copy the ssh key and past it in your Github account
 
 5. Clone your site's Github repository in the appropriate folder on the deployment server
 
 6. Create a database for Wordpress in PHPMyAdmin on the deployment server
 
 7. Install wpCli on the deployment server
-[http://wp-cli.org/docs/installing/](http://wp-cli.org/docs/installing/)
-```
-curl -O https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli.phar
-```
+	[http://wp-cli.org/docs/installing/](http://wp-cli.org/docs/installing/)
+	```
+	curl -O https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli.phar
+	```
 
 8. Download or copy Wordpress in the repository folder on the deployment site
-```
-wp core download
-```
-(or copy the wordpress files from the local repository to the deployment server)
+	```
+	wp core download
+	```
+	(or copy the wordpress files from the local repository to the deployment server)
 
 9. Update wp-config.php on the deployment site
-Note: make sure that the remote wordpress folder has permission 755 or lower.
+	Note: make sure that the remote wordpress folder has permission 755 or lower.
 
 10. Install Wordpress on the deployment site
-Go to www.myclientserver.com/wordpress/wp-admin
-And follow the usual procedure to setup Wordpress.
+	Go to www.myclientserver.com/wordpress/wp-admin
+	And follow the usual procedure to setup Wordpress.
 
 11. Use WP Migrate Pro to push the local site to the deployment site
 	- Go to the remote server WP Migrate Pro > Settings.
