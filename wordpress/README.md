@@ -168,10 +168,10 @@ Go to www.myclientserver.com/wordpress/wp-admin
 And follow the usual procedure to setup Wordpress.
 
 11. Use WP Migrate Pro to push the local site to the deployment site
-- Go to the remote server WP Migrate Pro > Settings.
-- Copy the Server URL + secret key.
-- Enable Push + Pull.
-- Go to the local WP migrate Pro > Migrate
-- Select Push
-- Copy remote URL + secret key
-- Do the Push
+	- Go to the remote server WP Migrate Pro > Settings.
+		- Copy the Server URL + secret key.
+		- Enable Push + Pull.
+	- Go to the local WP migrate Pro > Migrate
+		- Select Push
+		- Copy remote URL + secret key
+		- Do the Push
